@@ -1,0 +1,11 @@
+{% extends "core/school_base.html" %}{% block school %}
+<div class="row" style="margin-bottom:10px"><h3 style="margin:0">Class-wise report</h3>
+{% if has_sec %}<a class="btn g" href="?{% if not split %}sec=1&{% endif %}cls={{ sel }}">{% if split %}Combine sections{% else %}Split by section{% endif %}</a>{% endif %}
+<a class="btn g" href="?csv=summary{% if split %}&sec=1{% endif %}">Download summary CSV</a></div>
+<div class="card tw"><table><tr><th>Class</th>{% for c in cols %}<th>{{ c }}</th>{% endfor %}</tr>
+{% for k, r in table %}<tr><td><a class="btn g" href="?cls={{ k|urlencode }}{% if split %}&sec=1{% endif %}">{{ k }}</a></td>{% for n in r %}<td>{{ n }}</td>{% endfor %}</tr>{% empty %}<tr><td colspan="9" class="mut">No students yet.</td></tr>{% endfor %}
+<tr><td><b>Total</b></td>{% for n in total %}<td><b>{{ n }}</b></td>{% endfor %}</tr></table></div>
+{% if sel %}<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Class {{ sel }} ({{ students|length }} students)</h3>
+<a class="btn y" href="?csv=class&cls={{ sel|urlencode }}{% if split %}&sec=1{% endif %}">Download list CSV</a></div>
+<div class="tw"><table><tr><th>Adm No</th><th>Name</th><th>Photo</th><th>Status</th></tr>
+{% for s in students %}<tr><td>{{ s.adm }}</td><td>{{ s.name }}</td><td>{% if s.photo %}Yes{% else %}Missing{% endif %}</td><td><span class="pill {% if s.verified_at %}ok{% else %}wait{% endif %}">{{ s.stage }}</span></td></tr>{% endfor %}</table></div></div>{% endif %}{% endblock %}

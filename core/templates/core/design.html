@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}{% block body %}
+<div class="row" style="margin-bottom:10px"><h2 style="margin:0">Card design: {{ school.name }}</h2><a class="btn g" href="{% url 'admin_home' %}">Back</a><a class="btn g" href="{% url 'design_sample' school.pk %}" target="_blank">Sample card PDF</a></div>
+<div class="card"><form method="post" action="{% url 'design_save' school.pk %}" enctype="multipart/form-data" class="row">{% csrf_token %}
+<label>Template image (the card design, JPG or PNG)<input type="file" name="bg" accept="image/*"></label>
+<label class="i"><input type="checkbox" name="autosize">Set card size from the image shape</label>
+{% if bg %}<label class="i"><input type="checkbox" name="remove_bg">Remove image</label>{% endif %}
+<label>Card width (mm)<input name="W" value="{{ W }}" style="min-width:0;width:90px"></label><label>Card height (mm)<input name="H" value="{{ H }}" style="min-width:0;width:90px"></label>
+<label class="i"><input type="checkbox" name="lab" {% if lab %}checked{% endif %}>Print field names too (Class: 5)</label><button class="y">Save</button></form></div>
+<div class="card"><p class="mut">Drag a box to move it. Click a box to change its size, font and colour.</p>
+<div class="cardwrap" id="wrap">{% include "core/_card.html" with W=W H=H bg=bg els=els %}
+{% for c in chips %}<div class="chip {% if c.key == sel %}sel{% endif %} {% if c.hide %}off{% endif %}" data-key="{{ c.key }}" style="left:{{ c.l|floatformat:'3u' }}%;top:{{ c.t|floatformat:'3u' }}%;width:{{ c.w|floatformat:'3u' }}%;height:{{ c.h|floatformat:'3u' }}%">{{ c.name }}</div>{% endfor %}</div>
+{% if sel %}<form method="post" action="{% url 'design_pos' school.pk %}" class="row" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="form" value="1"><input type="hidden" name="key" value="{{ sel }}"><b>{{ sel_name }}</b>
+<label>X (mm)<input name="x" value="{{ selp.x }}" style="min-width:0;width:80px"></label><label>Y (mm)<input name="y" value="{{ selp.y }}" style="min-width:0;width:80px"></label><label>Width (mm)<input name="w" value="{{ selp.w }}" style="min-width:0;width:80px"></label>
+{% if sel_img %}<label>Height (mm)<input name="h" value="{{ selp.h }}" style="min-width:0;width:80px"></label>{% else %}<label>Font (pt)<input name="sz" value="{{ selp.sz }}" style="min-width:0;width:80px"></label>
+<label>Colour<input type="color" name="c" value="{{ selp.c }}" style="min-width:56px;padding:2px"></label><label>Align<select name="al"><option {% if selp.al == 'left' %}selected{% endif %}>left</option><option {% if selp.al == 'center' %}selected{% endif %}>center</option><option {% if selp.al == 'right' %}selected{% endif %}>right</option></select></label>
+<label class="i"><input type="checkbox" name="b" {% if selp.b %}checked{% endif %}>Bold</label>{% endif %}
+<label class="i"><input type="checkbox" name="show" {% if not selp.hide %}checked{% endif %}>Show on card</label><button class="y">Apply</button></form>{% endif %}</div>
+<script>
+const csrf="{{ csrf_token }}",wrap=document.getElementById("wrap"),pos="{% url 'design_pos' school.pk %}",W={{ W|floatformat:'2u' }},H={{ H|floatformat:'2u' }};
+wrap.querySelectorAll(".chip").forEach(el=>el.addEventListener("pointerdown",e=>{e.preventDefault();
+ const r=wrap.getBoundingClientRect(),pm=r.width/W,l0=parseFloat(el.style.left),t0=parseFloat(el.style.top);let moved=false,nl=l0,nt=t0;
+ const mv=ev=>{moved=true;nl=Math.max(0,Math.min(100,l0+(ev.clientX-e.clientX)/r.width*100));nt=Math.max(0,Math.min(100,t0+(ev.clientY-e.clientY)/r.height*100));el.style.left=nl+"%";el.style.top=nt+"%"};
+ const up=async()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);
+  if(!moved){location.search="?sel="+encodeURIComponent(el.dataset.key);return}
+  const f=new FormData();f.append("key",el.dataset.key);f.append("x",(nl/100*W).toFixed(1));f.append("y",(nt/100*H).toFixed(1));
+  await fetch(pos,{method:"POST",body:f,headers:{"X-CSRFToken":csrf}});location.search="?sel="+encodeURIComponent(el.dataset.key)};
+ addEventListener("pointermove",mv);addEventListener("pointerup",up)}));
+</script>{% endblock %}

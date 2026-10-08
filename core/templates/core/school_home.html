@@ -1,0 +1,26 @@
+{% extends "core/school_base.html" %}{% block school %}
+<div class="stats">{% for n, c in stats %}<div class="stat"><b>{{ c }}</b><span>{{ n }}</span></div>{% endfor %}</div>
+<div class="card"><h3>1. Fields on the ID card</h3>
+<form method="post" action="{% url 'school_fields' school.pk %}">{% csrf_token %}<div class="chk">
+{% for k, l in all_fields %}<label><input type="checkbox" name="fields" value="{{ k }}" {% if k in school.fields %}checked{% endif %} {% if k == 'adm' or k == 'name' %}disabled checked{% endif %}>{{ l }}</label>{% endfor %}
+<label><input type="checkbox" name="pp" value="f" {% if "f" in school.pp %}checked{% endif %}>Father's photo</label>
+<label><input type="checkbox" name="pp" value="m" {% if "m" in school.pp %}checked{% endif %}>Mother's photo</label></div>
+<div style="margin-top:10px"><button>Save fields</button></div></form></div>
+<div class="card"><h3>2. Add students</h3>
+<form method="post" action="{% url 'school_upload' school.pk %}" enctype="multipart/form-data" class="row">{% csrf_token %}
+<input type="file" name="csv" accept=".csv"><button>Upload CSV</button><a class="btn g" href="{% url 'school_template_csv' school.pk %}">Download template</a></form>
+<p class="mut">Column names must match the field names exactly.</p>
+{% if errors %}<div class="msg error">{% for e in errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
+<h3 style="margin-top:14px">Add one student</h3>
+<form method="post" action="{% url 'school_add' school.pk %}" class="row">{% csrf_token %}
+{% for f in school.fields %}<label>{{ f }}<input name="{{ f }}"></label>{% endfor %}<button class="y">Add student</button></form></div>
+<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Students</h3>
+<form method="get" class="row"><input name="q" value="{{ q }}" placeholder="Search"><button class="g">Search</button></form>
+<form method="post" action="{% url 'school_approve_all' school.pk %}">{% csrf_token %}<button class="y">OK all verified (no parent changes)</button></form></div>
+<div class="tw"><table><tr><th>Adm</th><th>Name</th><th>Status</th><th>Parent changed</th><th></th></tr>
+{% for s in rows %}<tr><td>{{ s.adm }}</td><td>{{ s.name }}<br><span class="mut">{{ s.data.cls }} {{ s.data.sec }}</span></td>
+<td><span class="pill {% if s.verified_at %}ok{% else %}wait{% endif %}">{{ s.stage }}</span></td><td class="mut">{{ s.chg }}</td>
+<td>{% if s.verified_at and not s.appr_at %}<form method="post" action="{% url 'school_approve' school.pk s.pk %}" style="display:inline">{% csrf_token %}<button class="y">OK, send for print</button></form> {% endif %}
+{% if s.photo %}<a class="btn g" href="{% url 'card_pdf' school.pk s.pk %}" target="_blank">Card PDF</a> {% endif %}
+{% if s.photo and not s.verified_at and s.wa %}<a class="btn g" href="{{ s.wa }}" target="_blank" rel="noopener">Send link on WhatsApp</a>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="5" class="mut">No students yet.</td></tr>{% endfor %}</table></div></div>{% endblock %}

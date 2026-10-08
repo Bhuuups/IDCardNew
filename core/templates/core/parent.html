@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}{% block nav %}<header><b>{{ school.name }}</b></header>{% endblock %}
+{% block body %}
+<div style="max-width:640px;margin:0 auto">
+<div class="card"><h2>ID card details</h2><p class="mut">Please check the details for <b>{{ s.name }}</b> (Admission {{ s.adm }}).</p>
+<div class="cardwrap">{% include "core/_card.html" with W=W H=H bg=bg els=els %}</div></div>
+{% if verified %}<div class="msg success">These details are verified. Thank you.</div>
+{% elif not ready %}<div class="msg">The photo has not been taken yet. Please check again after photo day.</div>
+{% else %}<div class="card"><form method="post" enctype="multipart/form-data">{% csrf_token %}
+<h3>Correct anything that is wrong</h3><div class="row">{% for f, l, v in fields %}<label>{{ l }}<input name="{{ f }}" value="{{ v }}"></label>{% endfor %}</div>
+<h3 style="margin-top:14px">Change a photo (optional)</h3><div class="row">{% for k, n in targets %}<label>{{ n }}<input type="file" name="{{ k }}" accept="image/*" capture="user"></label>{% endfor %}</div>
+<p class="mut">Mobile on record: {{ masked }}. The code is sent to this number.</p>
+{% if not otp_sent %}<input type="hidden" name="action" value="send"><button class="y">Send OTP</button>{% else %}
+<button class="g" name="action" value="send">Save changes and send a new OTP</button>{% endif %}</form>
+{% if otp_sent %}<form method="post" class="row" style="margin-top:14px">{% csrf_token %}<input type="hidden" name="action" value="verify"><label>6-digit OTP<input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label><button class="y">Verify and save</button></form>{% endif %}</div>{% endif %}
+</div>{% endblock %}

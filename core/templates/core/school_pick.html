@@ -1,0 +1,2 @@
+{% extends "core/base.html" %}{% block body %}<h2>Your schools</h2>
+{% for s in schools %}<div class="card"><a class="btn y" href="{% url 'school_home' s.pk %}">{{ s.name }}</a></div>{% empty %}<p class="mut">No school has been allotted to you yet. Ask the admin.</p>{% endfor %}{% endblock %}

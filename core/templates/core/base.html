@@ -1,0 +1,11 @@
+{% load static %}<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ID Card Desk{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'core/app.css' %}"></head><body>
+{% block nav %}<header><b>ID Card Desk</b>
+{% if member %}{% if member.role == "admin" %}<a href="{% url 'admin_home' %}" {% if nav == "admin" %}class="on"{% endif %}>Dashboard</a><a href="{% url 'queue' %}" {% if nav == "queue" %}class="on"{% endif %}>Print queue</a>{% else %}<a href="{% url 'home' %}">My schools</a>{% endif %}
+<span class="sp"></span><span>{{ member.name|default:member.email }}</span>
+<form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}<button class="g" style="padding:6px 12px;border-radius:99px;color:inherit!important;border-color:rgba(255,255,255,.3)!important">Log out</button></form>{% endif %}
+</header>{% endblock %}
+<main>{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+{% block body %}{% endblock %}</main></body></html>

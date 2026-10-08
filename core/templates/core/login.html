@@ -1,0 +1,9 @@
+{% extends "core/base.html" %}{% block body %}
+<div class="card" style="max-width:420px;margin:40px auto"><h2>Log in</h2>
+<p class="mut">Use the email registered for your school, your team, or the owner account. We send a one-time code to it.</p>
+<form method="post">{% csrf_token %}
+<label>Email<input type="email" name="email" value="{{ email }}" required autocomplete="email" {% if step == "code" %}readonly{% endif %}></label>
+{% if step == "code" %}<label style="margin-top:12px">6-digit code<input name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" autofocus required></label>
+<div class="row" style="margin-top:12px"><button class="y">Log in</button><a class="btn g" href="{% url 'login' %}">Start again</a></div>
+{% else %}<div style="margin-top:12px"><button>Send code</button></div>{% endif %}
+</form></div>{% endblock %}

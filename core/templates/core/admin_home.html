@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}{% block body %}
+<h2>Admin dashboard</h2>
+<div class="stats">{% for n, c in stats %}<div class="stat"><b>{{ c }}</b><span>{{ n }}</span></div>{% endfor %}</div>
+<div class="card"><h3>Print queue by day</h3><div class="tw"><table><tr><th>Date</th><th>Sent for print by schools</th><th>Printed</th></tr>
+{% for d, a, p in per_day %}<tr><td>{{ d|date:"d M Y" }}{% if d == today %} (today){% endif %}</td><td>{{ a }}</td><td>{{ p }}</td></tr>{% endfor %}</table></div>
+<p><a class="btn y" href="{% url 'queue' %}">Open print queue</a></p></div>
+<div class="card"><h3>Add a school</h3><form method="post" action="{% url 'add_school' %}" class="row">{% csrf_token %}
+<label>School name<input name="name" required></label><label>School login email<input type="email" name="email" required></label><label>Session<input name="session" value="2026-27"></label><button class="y">Add school</button></form></div>
+<div class="card tw"><table><tr><th>School</th><th>Students</th><th>Verified</th><th>Ready today</th><th>Waiting to print</th><th>Printed</th><th>Delivered</th><th></th></tr>
+{% for r in rows %}<tr><td>{{ r.school.name }}<br><span class="mut">{{ r.school.email }}</span></td><td>{{ r.total }}</td><td>{{ r.verified }}</td><td>{{ r.ready_today }}</td><td>{{ r.waiting }}</td><td>{{ r.printed }}</td><td>{{ r.delivered }}</td>
+<td><a class="btn g" href="{% url 'school_home' r.school.pk %}">Open</a> <a class="btn g" href="{% url 'design' r.school.pk %}">Card design</a></td></tr>
+{% empty %}<tr><td colspan="8" class="mut">No schools yet.</td></tr>{% endfor %}</table></div>
+<div class="card"><h3>Team members</h3><p class="mut">A team member logs in with email + OTP and sees only the schools allotted to them.</p>
+<form method="post" action="{% url 'add_team' %}" class="row">{% csrf_token %}<label>Name<input name="name" required></label><label>Email<input type="email" name="email" required></label><button class="y">Add member</button></form>
+{% for m in team %}<form method="post" action="{% url 'allot_team' m.pk %}" style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">{% csrf_token %}
+<b>{{ m.name }}</b> <span class="mut">{{ m.email }}</span><div class="chk" style="margin:8px 0">{% for s in schools %}<label><input type="checkbox" name="schools" value="{{ s.pk }}" {% if s in m.schools.all %}checked{% endif %}>{{ s.name }}</label>{% endfor %}</div>
+<button>Save allotment</button> <button class="g" formaction="{% url 'delete_team' m.pk %}">Remove member</button></form>{% endfor %}</div>{% endblock %}

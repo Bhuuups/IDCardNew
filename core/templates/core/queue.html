@@ -1,0 +1,8 @@
+{% extends "core/base.html" %}{% block body %}
+<div class="row" style="margin-bottom:12px"><h2 style="margin:0">Approved by schools, to print ({{ q|length }})</h2>
+<a class="btn g" href="{% url 'queue_csv' %}">Waiting list CSV</a><a class="btn y" href="{% url 'queue_pdf' %}" target="_blank">PDF of all waiting cards</a></div>
+<div class="card tw"><table><tr><th>School</th><th>Adm No</th><th>Name</th><th>Class</th><th>Approved on</th><th>Status</th><th></th></tr>
+{% for s in q %}<tr><td>{{ s.school.name }}</td><td>{{ s.adm }}</td><td>{{ s.name }}</td><td>{{ s.data.cls }}</td><td>{{ s.appr_at|date:"d M Y" }}</td><td>{% if s.printed_at %}Printed{% else %}Waiting{% endif %}</td>
+<td><a class="btn g" href="{% url 'card_pdf' s.school.pk s.pk %}" target="_blank">PDF</a>
+<form method="post" action="{% url 'queue_mark' s.pk %}" style="display:inline">{% csrf_token %}{% if s.printed_at %}<input type="hidden" name="what" value="delivered"><button class="g">Mark delivered</button>{% else %}<input type="hidden" name="what" value="printed"><button class="y">Mark printed</button>{% endif %}</form></td></tr>
+{% empty %}<tr><td colspan="7" class="mut">Nothing sent for print yet.</td></tr>{% endfor %}</table></div>{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "core/school_base.html" %}{% block school %}
+<div class="card"><form method="get" class="row"><label>Admission No<input name="adm" value="{{ adm }}" autofocus></label><button class="y">Find student</button></form></div>
+{% if stu %}<div class="card"><h3>{{ stu.name }}</h3>
+<p class="mut">Admission {{ stu.adm }} &middot; Class {{ stu.data.cls }} {{ stu.data.sec }} &middot; Parent mobile {{ stu.data.pmob }}</p>
+<div class="row">{% for k, n in targets %}<label class="i"><input type="radio" name="who" value="{{ k }}" {% if forloop.first %}checked{% endif %}> {{ n }}</label>{% endfor %}</div>
+<div class="row" style="margin-top:10px"><button type="button" id="opencam">Open camera</button><button type="button" id="snap" class="y">Take photo</button>
+<label class="btn g" style="flex-direction:row">Upload instead<input type="file" id="file" accept="image/*" capture="user" hidden></label></div>
+<video id="vid" autoplay playsinline muted hidden width="320"></video><canvas id="cv" hidden></canvas>
+<div id="status" class="mut" style="margin-top:8px"></div>
+<div class="row" style="margin-top:12px">{% for k, n in targets %}<div><div class="mut">{{ n }}</div>{% if k == 'photo' and stu.photo or k == 'fphoto' and stu.fphoto or k == 'mphoto' and stu.mphoto %}<img class="photo" src="{% url 'photo' school.pk stu.pk k %}" alt="{{ n }}">{% else %}<div class="photo"></div>{% endif %}</div>{% endfor %}</div></div>
+<script>
+const base="{% url 'photo_upload' school.pk stu.pk 'WHICH' %}",csrf="{{ csrf_token }}",st=document.getElementById("status");let stream=null;
+const who=()=>document.querySelector('input[name=who]:checked').value;
+async function send(blob){st.textContent="Saving...";const f=new FormData();f.append("image",blob,"p.jpg");
+ const r=await fetch(base.replace("WHICH",who()),{method:"POST",body:f,headers:{"X-CSRFToken":csrf}});const j=await r.json().catch(()=>({}));
+ if(r.ok&&j.ok){location.reload()}else st.textContent=j.error||"Could not save the photo."}
+document.getElementById("opencam").onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}});const v=document.getElementById("vid");v.srcObject=stream;v.hidden=false}catch(e){st.textContent="Camera not available. Use Upload instead."}};
+document.getElementById("snap").onclick=()=>{const v=document.getElementById("vid");if(!stream){st.textContent="Open the camera first.";return}
+ const c=document.getElementById("cv");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);stream.getTracks().forEach(t=>t.stop());c.toBlob(send,"image/jpeg",.9)};
+document.getElementById("file").onchange=e=>{if(e.target.files[0])send(e.target.files[0])};
+</script>{% endif %}{% endblock %}
