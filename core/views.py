@@ -1,13 +1,15 @@
 import csv
 import io
+import re
 from datetime import timedelta
 from functools import wraps
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -499,15 +501,39 @@ def card_pdf(request, sid, pk):
     return pdf_response(cards_pdf([s]), f"{safe_name(s.adm)}-{safe_name(s.name)}.pdf")
 
 
+def natural(s):
+    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", str(s or ""))]
+
+
 @member_required()
 def photoday(request, sid):
     school = school_for(request, sid)
-    adm = request.GET.get("adm", "").strip()
+    g = request.GET
+    adm, q, cls, sort, missing = g.get("adm", "").strip(), g.get("q", "").strip(), g.get("cls", ""), g.get("sort", "adm"), bool(g.get("missing"))
+    qs = school.students.all()
+    classes = sorted({s.data.get("cls") for s in qs if s.data.get("cls")}, key=natural)
+    if cls:
+        qs = qs.filter(data__cls=cls)
+    if q:
+        qs = qs.filter(Q(adm__icontains=q) | Q(name__icontains=q))
+    if missing:
+        qs = qs.filter(Q(photo="") | Q(photo__isnull=True))
+    students = list(qs[:500])
+    keys = {"name": lambda s: (s.name.lower(), natural(s.adm)),
+            "cls": lambda s: (natural(s.data.get("cls")), natural(s.data.get("sec")), s.name.lower())}
+    students.sort(key=keys.get(sort, lambda s: natural(s.adm)))
     stu = school.students.filter(adm=adm).first() if adm else None
-    if adm and not stu:
-        messages.error(request, f"No student with admission no {adm} in this school.")
+    if not stu and q and len(students) == 1:
+        stu = students[0]
+    nxt = None
+    if stu:
+        ids = [s.pk for s in students]
+        after = students[ids.index(stu.pk) + 1:] if stu.pk in ids else students
+        nxt = next((s for s in after if not s.photo and s.pk != stu.pk), None)
+    keep = urlencode({k: v for k, v in dict(q=q, cls=cls, sort=sort, missing="1" if missing else "").items() if v})
     return render(request, "core/photoday.html", dict(
-        member=request.member, school=school, tab="photo", stu=stu, adm=adm,
+        member=request.member, school=school, tab="photo", stu=stu, students=students, classes=classes,
+        q=q, cls=cls, sort=sort, missing=missing, keep=keep, nxt=nxt,
         targets=[(k, PHOTO_NAMES[k]) for k in school.photo_fields]))
 
 
