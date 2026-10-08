@@ -154,3 +154,35 @@ class Flow(TestCase):
         r = c.post(reverse("login"), {"email": "nobody@x.in"})
         self.assertEqual(len(mail.outbox), 0)
         self.assertContains(r, "If this email is registered")
+
+
+@override_settings(KEEP_OUTBOX=True, SHOW_OTP_ON_SCREEN=False)
+class PhotoDaySearch(TestCase):
+    def setUp(self):
+        otp.COOLDOWN = 0
+        self.s = School.objects.create(name="S", email="s@s.in", fields=["adm", "name", "cls", "sec", "pmob"])
+        Member.objects.create(email="s@s.in", role="school").schools.add(self.s)
+        for adm, name, cls in [("2", "Zoya", "5"), ("10", "Aman", "5"), ("9", "Bhumi", "6"), ("11", "Chetan", "10")]:
+            Student.objects.create(school=self.s, adm=adm, name=name, data={"cls": cls, "sec": "A"})
+        self.c = self.client_class()
+        login(self.c, "s@s.in")
+        self.url = reverse("photoday", args=[self.s.pk])
+
+    def names(self, qs=""):
+        r = self.c.get(self.url + qs)
+        self.assertEqual(r.status_code, 200)
+        return [x.name for x in r.context["students"]]
+
+    def test_search_filter_sort(self):
+        self.assertEqual(self.names(), ["Zoya", "Bhumi", "Aman", "Chetan"])               # admission order 2, 9, 10, 11
+        self.assertEqual(self.names("?sort=name"), ["Aman", "Bhumi", "Chetan", "Zoya"])
+        self.assertEqual(self.names("?cls=5"), ["Zoya", "Aman"])
+        self.assertEqual(self.names("?sort=cls"), ["Aman", "Zoya", "Bhumi", "Chetan"])     # class 5 (by name), 6, 10
+        self.assertEqual(self.names("?q=bhu"), ["Bhumi"])
+        self.assertEqual(self.names("?q=1"), ["Aman", "Chetan"])                           # adm 10, 11
+        r = self.c.get(self.url + "?q=bhu")
+        self.assertEqual(r.context["stu"].name, "Bhumi")                                    # one match opens it
+        Student.objects.filter(adm="2").update(photo="photos/x.jpg")
+        self.assertEqual(self.names("?missing=1"), ["Bhumi", "Aman", "Chetan"])
+        r = self.c.get(self.url + "?adm=9&missing=1")
+        self.assertEqual(r.context["nxt"].name, "Aman")
