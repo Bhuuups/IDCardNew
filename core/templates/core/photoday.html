@@ -1,5 +1,10 @@
 {% extends "core/school_base.html" %}{% block school %}
-<div class="card"><form method="get" class="row"><label>Admission No<input name="adm" value="{{ adm }}" autofocus></label><button class="y">Find student</button></form></div>
+<div class="card"><form method="get" class="row">
+<label>Search (admission no or name)<input name="q" value="{{ q }}" autofocus></label>
+{% if classes %}<label>Class<select name="cls"><option value="">All classes</option>{% for c in classes %}<option value="{{ c }}" {% if c == cls %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></label>{% endif %}
+<label>Sort by<select name="sort"><option value="adm" {% if sort == "adm" %}selected{% endif %}>Admission no</option><option value="name" {% if sort == "name" %}selected{% endif %}>Name</option>{% if classes %}<option value="cls" {% if sort == "cls" %}selected{% endif %}>Class</option>{% endif %}</select></label>
+<label class="i"><input type="checkbox" name="missing" value="1" {% if missing %}checked{% endif %}>Only photo missing</label>
+<button class="y">Search</button><a class="btn g" href="{% url 'photoday' school.pk %}">Clear</a></form></div>
 {% if stu %}<div class="card"><h3>{{ stu.name }}</h3>
 <p class="mut">Admission {{ stu.adm }} &middot; Class {{ stu.data.cls }} {{ stu.data.sec }} &middot; Parent mobile {{ stu.data.pmob }}</p>
 <div class="row">{% for k, n in targets %}<label class="i"><input type="radio" name="who" value="{{ k }}" {% if forloop.first %}checked{% endif %}> {{ n }}</label>{% endfor %}</div>
@@ -7,6 +12,7 @@
 <label class="btn g" style="flex-direction:row">Upload instead<input type="file" id="file" accept="image/*" capture="user" hidden></label></div>
 <video id="vid" autoplay playsinline muted hidden width="320"></video><canvas id="cv" hidden></canvas>
 <div id="status" class="mut" style="margin-top:8px"></div>
+{% if nxt %}<p><a class="btn g" href="?adm={{ nxt.adm|urlencode }}{% if keep %}&{{ keep }}{% endif %}">Next student without photo</a></p>{% endif %}
 <div class="row" style="margin-top:12px">{% for k, n in targets %}<div><div class="mut">{{ n }}</div>{% if k == 'photo' and stu.photo or k == 'fphoto' and stu.fphoto or k == 'mphoto' and stu.mphoto %}<img class="photo" src="{% url 'photo' school.pk stu.pk k %}" alt="{{ n }}">{% else %}<div class="photo"></div>{% endif %}</div>{% endfor %}</div></div>
 <script>
 const base="{% url 'photo_upload' school.pk stu.pk 'WHICH' %}",csrf="{{ csrf_token }}",st=document.getElementById("status");let stream=null;
@@ -18,4 +24,8 @@ document.getElementById("opencam").onclick=async()=>{try{stream=await navigator.
 document.getElementById("snap").onclick=()=>{const v=document.getElementById("vid");if(!stream){st.textContent="Open the camera first.";return}
  const c=document.getElementById("cv");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);stream.getTracks().forEach(t=>t.stop());c.toBlob(send,"image/jpeg",.9)};
 document.getElementById("file").onchange=e=>{if(e.target.files[0])send(e.target.files[0])};
-</script>{% endif %}{% endblock %}
+</script>{% endif %}<div class="card"><div class="mut" style="margin-bottom:6px">{{ students|length }} student{{ students|length|pluralize }}</div><div class="tw"><table><tr><th>Adm No</th><th>Name</th><th>Class</th><th>Photo</th><th></th></tr>
+{% for s in students %}<tr {% if stu and s.pk == stu.pk %}style="background:var(--bg)"{% endif %}><td>{{ s.adm }}</td><td>{{ s.name }}</td><td>{{ s.data.cls }} {{ s.data.sec }}</td><td>{% if s.photo %}<span class="pill ok">Taken</span>{% else %}<span class="pill wait">Missing</span>{% endif %}</td>
+<td><a class="btn g" href="?adm={{ s.adm|urlencode }}{% if keep %}&{{ keep }}{% endif %}">{% if s.photo %}Retake{% else %}Take photo{% endif %}</a></td></tr>
+{% empty %}<tr><td colspan="5" class="mut">No students match.</td></tr>{% endfor %}</table></div></div>
+{% endblock %}
